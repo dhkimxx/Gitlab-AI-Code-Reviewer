@@ -41,7 +41,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
 3. 아래 GitLab API로 MR diff 조회
 
    ```text
-   GET {GITLAB_URL}/projects/{project_id}/merge_requests/{mr_iid}/changes
+   GET {GITLAB_URL}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/changes
    ```
 
 4. 응답에서 `changes[].diff`를 추출해 하나의 문자열로 합침
@@ -49,7 +49,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
 6. 생성된 리뷰를 아래 API로 MR 댓글로 등록
 
    ```text
-   POST {GITLAB_URL}/projects/{project_id}/merge_requests/{mr_iid}/notes
+   POST {GITLAB_URL}/api/v4/projects/{project_id}/merge_requests/{mr_iid}/notes
    ```
 
 ### 2. 푸시(Push) / 커밋 플로우
@@ -59,7 +59,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
 3. 아래 GitLab API로 커밋 diff 조회
 
    ```text
-   GET {GITLAB_URL}/projects/{project_id}/repository/commits/{commit_id}/diff
+   GET {GITLAB_URL}/api/v4/projects/{project_id}/repository/commits/{commit_id}/diff
    ```
 
 4. diff 목록을 문자열로 합쳐 프롬프트에 포함
@@ -67,7 +67,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
 6. 생성된 리뷰를 아래 API로 커밋 댓글로 등록
 
    ```text
-   POST {GITLAB_URL}/projects/{project_id}/repository/commits/{commit_id}/comments
+   POST {GITLAB_URL}/api/v4/projects/{project_id}/repository/commits/{commit_id}/comments
    ```
 
 오류가 발생하면 콘솔에 예외를 출력하고, GitLab 댓글에 에러 메시지를 포함한 안내 문구를 남깁니다.
@@ -129,13 +129,19 @@ pip install -r requirements.txt
   GitLab Personal Access Token. MR 조회 및 댓글 작성이 가능하도록 `api` 스코프 권장.
 
 - `GITLAB_URL`  
-  GitLab API 베이스 URL. GitLab.com의 경우:
+  GitLab 인스턴스 **베이스 URL**(프로토콜 + 호스트까지)입니다. GitLab.com의 경우:
 
   ```text
-  https://gitlab.com/api/v4
+  https://gitlab.com
   ```
 
-  self-hosted GitLab을 사용하는 경우 인스턴스 주소에 맞게 변경합니다.
+  self-hosted GitLab을 사용하는 경우 예시는 다음과 같습니다.
+
+  ```text
+  http://localhost:8080
+  ```
+
+  애플리케이션은 내부에서 이 값에 `/api/v4`를 자동으로 붙여 GitLab API를 호출합니다.
 
 - `EXPECTED_GITLAB_TOKEN`  
   Webhook 보안을 위한 GitLab **Secret Token** 값입니다. GitLab Webhook 설정 화면에서 입력한 값과 동일해야 합니다.
@@ -170,7 +176,7 @@ OPENAI_API_KEY=your-openai-api-key
 OPENAI_API_MODEL=gpt-3.5-turbo
 
 GITLAB_TOKEN=your-gitlab-personal-access-token
-GITLAB_URL=https://gitlab.com/api/v4
+GITLAB_URL=https://gitlab.com
 
 EXPECTED_GITLAB_TOKEN=your-webhook-secret-token
 
