@@ -10,7 +10,7 @@ GitLab Webhook(머지 요청 및 푸시 이벤트)을 받아 diff를 조회하�
 - GitLab에서 발생하는 다음 이벤트를 처리합니다.
   - 머지 요청 이벤트(`object_kind = "merge_request"`, action: `open`인 경우만 처리)
   - 푸시 이벤트(`object_kind = "push"`)
-- 각 이벤트에 대해 GitLab API로 diff를 조회한 뒤, OpenAI ChatCompletion API에 전달하여 리뷰를 생성합니다.
+- 각 이벤트에 대해 GitLab API로 diff를 조회한 뒤, OpenAI ChatCompletion API(파이썬 SDK v1 기준 `OpenAI` 클라이언트)를 통해 리뷰를 생성합니다.
 - 생성된 리뷰를 다음 위치에 댓글로 남깁니다.
   - 머지 요청: MR Note
   - 커밋: Commit Comment
@@ -45,7 +45,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
    ```
 
 4. 응답에서 `changes[].diff`를 추출해 하나의 문자열로 합침
-5. 리뷰 프롬프트(질문 목록 포함)를 구성하고 `openai.ChatCompletion.create(...)` 호출
+5. 리뷰 프롬프트(질문 목록 포함)를 구성하고 OpenAI Python SDK v1의 `client.chat.completions.create(...)`를 호출
 6. 생성된 리뷰를 아래 API로 MR 댓글로 등록
 
    ```text
@@ -63,7 +63,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
    ```
 
 4. diff 목록을 문자열로 합쳐 프롬프트에 포함
-5. `openai.ChatCompletion.create(...)`로 리뷰 생성
+5. OpenAI Python SDK v1의 `client.chat.completions.create(...)`로 리뷰 생성
 6. 생성된 리뷰를 아래 API로 커밋 댓글로 등록
 
    ```text
@@ -258,8 +258,7 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
 
 1. GitLab에서 diff를 조회해 하나의 문자열로 합칩니다.
 2. 파일 상태(추가/삭제/리네임/수정)를 포함해 diff를 파일 단위로 정리하고, 시니어 코드 리뷰어 역할과 체크리스트(요약, 코드 품질, 버그/로직, 보안, 제안)를 담은 프롬프트를 구성합니다. 이때 LLM이 먼저 **한국어 리뷰**, 이어서 `---` 한 줄, 그리고 **동일 구조의 영어 리뷰**를 생성하도록 지시합니다.
-3. `openai.ChatCompletion.create(...)`에 아래와 유사한 설정으로 요청합니다.
-   - `deployment_id = OPENAI_API_MODEL`
+3. OpenAI Python SDK v1 기준 `client.chat.completions.create(...)`에 아래와 유사한 설정으로 요청합니다.
    - `model = OPENAI_API_MODEL` 또는 기본값 `gpt-3.5-turbo`
 4. 응답 내용을 정리해 GitLab에 마크다운 댓글로 등록합니다.
 
