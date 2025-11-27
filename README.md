@@ -151,6 +151,12 @@ pip install -r requirements.txt
   openssl rand -base64 32
   ```
 
+### 선택 환경 변수 (공통)
+
+- `LOG_LEVEL`  
+  애플리케이션 전역 로그 레벨을 설정합니다. 설정하지 않으면 `INFO`가 기본값입니다.  
+  사용 가능한 값 예: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+
 ### 선택 환경 변수 (Azure OpenAI 사용 시)
 
 - `AZURE_OPENAI_API_BASE`  
@@ -179,6 +185,8 @@ GITLAB_TOKEN=your-gitlab-personal-access-token
 GITLAB_URL=https://gitlab.com
 
 EXPECTED_GITLAB_TOKEN=your-webhook-secret-token
+
+LOG_LEVEL=INFO
 
 AZURE_OPENAI_API_BASE= # optional
 AZURE_OPENAI_API_VERSION= # optional
