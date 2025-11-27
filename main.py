@@ -8,7 +8,7 @@ from review_prompt import generate_review_prompt
 
 app = Flask(__name__)
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-gitlab_token = os.environ.get("GITLAB_TOKEN")
+gitlab_access_token = os.environ.get("GITLAB_ACCESS_TOKEN")
 gitlab_base_url = os.environ.get("GITLAB_URL")
 gitlab_api_base_url = (
     f"{gitlab_base_url.rstrip('/')}/api/v4" if gitlab_base_url else None
@@ -57,7 +57,7 @@ def handle_merge_request_event(payload):
         f"{gitlab_api_base_url}/projects/{project_id}/merge_requests/{mr_id}/changes"
     )
 
-    headers = {"Private-Token": gitlab_token}
+    headers = {"Private-Token": gitlab_access_token}
     response = requests.get(changes_url, headers=headers)
     logger.info(
         "Fetched merge_request changes: url=%s, status_code=%s",
@@ -111,7 +111,7 @@ def handle_push_event(payload):
     )
     commit_url = f"{gitlab_api_base_url}/projects/{project_id}/repository/commits/{commit_id}/diff"
 
-    headers = {"Private-Token": gitlab_token}
+    headers = {"Private-Token": gitlab_access_token}
     response = requests.get(commit_url, headers=headers)
     logger.info(
         "Fetched commit diff: url=%s, status_code=%s",
@@ -151,9 +151,9 @@ def handle_push_event(payload):
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    expected_token = os.environ.get("EXPECTED_GITLAB_TOKEN")
+    webhook_secret_token = os.environ.get("GITLAB_WEBHOOK_SECRET_TOKEN")
     received_token = request.headers.get("X-Gitlab-Token")
-    if received_token != expected_token:
+    if received_token != webhook_secret_token:
         logger.warning("Unauthorized webhook request: invalid X-Gitlab-Token")
         return "Unauthorized", 403
 

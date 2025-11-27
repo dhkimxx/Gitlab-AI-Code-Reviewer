@@ -37,7 +37,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
 ### 1. 머지 요청(Merge Request) 플로우
 
 1. GitLab에서 MR이 **open** 상태로 생성되면 Webhook 호출
-2. 헤더 `X-Gitlab-Token` 값을 `EXPECTED_GITLAB_TOKEN` 환경 변수와 비교하여 인증
+2. 헤더 `X-Gitlab-Token` 값을 `GITLAB_WEBHOOK_SECRET_TOKEN` 환경 변수와 비교하여 인증
 3. 아래 GitLab API로 MR diff 조회
 
    ```text
@@ -98,7 +98,7 @@ Python 의존성은 `requirements.txt`에 정의되어 있습니다.
 - `OPENAI_API_MODEL`  
   사용할 OpenAI ChatCompletion 모델 이름 (예: `gpt-3.5-turbo`)
 
-- `GITLAB_TOKEN`  
+- `GITLAB_ACCESS_TOKEN`  
   GitLab Personal Access Token. MR 조회 및 댓글 작성이 가능하도록 `api` 스코프 권장.
 
 - `GITLAB_URL`  
@@ -116,7 +116,7 @@ Python 의존성은 `requirements.txt`에 정의되어 있습니다.
 
   애플리케이션은 내부에서 이 값에 `/api/v4`를 자동으로 붙여 GitLab API를 호출합니다.
 
-- `EXPECTED_GITLAB_TOKEN`  
+- `GITLAB_WEBHOOK_SECRET_TOKEN`  
   Webhook 보안을 위한 GitLab **Secret Token** 값입니다. GitLab Webhook 설정 화면에서 입력한 값과 동일해야 합니다.
   강력한 랜덤 토큰을 생성하기 위해 아래와 같은 명령어(macOS / Linux 기준) 사용을 권장합니다.
 
@@ -144,10 +144,10 @@ Python 의존성은 `requirements.txt`에 정의되어 있습니다.
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_API_MODEL=gpt-3.5-turbo
 
-GITLAB_TOKEN=your-gitlab-personal-access-token
+GITLAB_ACCESS_TOKEN=your-gitlab-personal-access-token
 GITLAB_URL=https://gitlab.com
 
-EXPECTED_GITLAB_TOKEN=your-webhook-secret-token
+GITLAB_WEBHOOK_SECRET_TOKEN=your-webhook-secret-token
 
 LOG_LEVEL=INFO
 
@@ -239,7 +239,7 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
 
 3. **Secret token** 입력:
 
-   - `.env`에 설정한 `EXPECTED_GITLAB_TOKEN`과 **동일한 값**을 입력합니다.
+   - `.env`에 설정한 `GITLAB_WEBHOOK_SECRET_TOKEN`과 **동일한 값**을 입력합니다.
 
 4. Trigger 이벤트 선택:
 
@@ -274,14 +274,14 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
 
 - **403 Unauthorized 발생**
 
-  - GitLab Webhook 설정의 **Secret token**이 `EXPECTED_GITLAB_TOKEN`과 같은지 확인합니다.
+  - GitLab Webhook 설정의 **Secret token**이 `GITLAB_WEBHOOK_SECRET_TOKEN`과 같은지 확인합니다.
   - Webhook 요청이 올바른 URL/포트(`/webhook`)로 가고 있는지 확인합니다.
 
 - **머지 요청/커밋에 리뷰 댓글이 안 달리는 경우**
 
   - GitLab Webhook 화면의 "Recent Deliveries"에서 이벤트가 실제로 전송되었는지 확인합니다.
   - 컨테이너/애플리케이션 로그에 에러가 없는지 확인합니다.
-  - `GITLAB_TOKEN`에 충분한 권한이 있는지, `GITLAB_URL`이 올바른지 점검합니다.
+  - `GITLAB_ACCESS_TOKEN`에 충분한 권한이 있는지, `GITLAB_URL`이 올바른지 점검합니다.
 
 - **OpenAI 관련 에러**
   - `OPENAI_API_KEY`, `OPENAI_API_MODEL` 값이 유효한지 확인합니다.
