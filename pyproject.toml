@@ -11,12 +11,20 @@ requires-python = ">=3.11"
 # - openai: OpenAI Python SDK (v1.x)
 # - python-dotenv: 테스트 시 .env 자동 로딩
 # - gunicorn: 프로덕션용 WSGI 서버 (Docker에서 사용)
+# - langchain-core: LLM 추상화를 위한 공통 인터페이스
+# - langchain-openai: OpenAI용 LangChain 통합
+# - langchain-google-genai: Google Gemini용 LangChain 통합
+# - langchain-ollama: Ollama용 LangChain 통합
 dependencies = [
     "flask==2.2.3",
     "requests==2.28.2",
     "openai>=1.0.0,<2.0.0",
     "python-dotenv==1.0.0",
     "gunicorn>=21.2.0,<22.0.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=1.0.0",
+    "langchain-google-genai>=3.0.0",
+    "langchain-ollama>=0.1.0",
 ]
 
 [dependency-groups]

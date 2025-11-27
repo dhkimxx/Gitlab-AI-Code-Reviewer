@@ -59,8 +59,6 @@ if log_level == logging.INFO and log_level_name != "INFO":
 enable_merge_request_review = _get_bool_env("ENABLE_MERGE_REQUEST_REVIEW", True)
 enable_push_review = _get_bool_env("ENABLE_PUSH_REVIEW", True)
 
-openai_model = os.environ.get("OPENAI_API_MODEL") or "gpt-5-mini"
-
 review_max_requests_per_minute = _get_int_env(
     "REVIEW_MAX_REQUESTS_PER_MINUTE",
     2,
@@ -117,7 +115,6 @@ def handle_merge_request_event(payload):
             merge_request_iid=mr_id,
             gitlab_api_base_url=gitlab_api_base_url,
             gitlab_access_token=gitlab_access_token,
-            openai_model=openai_model,
         )
     except Exception:
         logger.exception(
@@ -160,7 +157,6 @@ def handle_push_event(payload):
             commit_id=commit_id,
             gitlab_api_base_url=gitlab_api_base_url,
             gitlab_access_token=gitlab_access_token,
-            openai_model=openai_model,
         )
     except Exception:
         logger.exception(

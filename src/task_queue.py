@@ -66,7 +66,6 @@ def enqueue_merge_request_review(
     merge_request_iid: int,
     gitlab_api_base_url: str,
     gitlab_access_token: str,
-    openai_model: str,
 ) -> None:
     """머지 요청 리뷰 작업을 큐에 추가한다."""
 
@@ -75,7 +74,6 @@ def enqueue_merge_request_review(
         merge_request_iid=merge_request_iid,
         gitlab_api_base_url=gitlab_api_base_url,
         gitlab_access_token=gitlab_access_token,
-        openai_model=openai_model,
     )
     _job_queue.put(task)
     _log_if_queue_too_long()
@@ -86,7 +84,6 @@ def enqueue_push_review(
     commit_id: str,
     gitlab_api_base_url: str,
     gitlab_access_token: str,
-    openai_model: str,
 ) -> None:
     """푸시(커밋) 리뷰 작업을 큐에 추가한다."""
 
@@ -95,7 +92,6 @@ def enqueue_push_review(
         commit_id=commit_id,
         gitlab_api_base_url=gitlab_api_base_url,
         gitlab_access_token=gitlab_access_token,
-        openai_model=openai_model,
     )
     _job_queue.put(task)
     _log_if_queue_too_long()

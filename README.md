@@ -1,7 +1,7 @@
 # Gitlab AI Code Reviewer
 
 Gitlab AI Code Reviewer는 GitLab 저장소의 코드 변경 사항을 **자동으로 리뷰**해 주는 Flask 기반 웹 애플리케이션입니다.
-GitLab Webhook(머지 요청 및 푸시 이벤트)을 받아 diff를 조회하고, OpenAI를 사용해 코드 리뷰 코멘트를 생성한 뒤, GitLab에 **마크다운 형식의 댓글**로 남깁니다.
+GitLab Webhook(머지 요청 및 푸시 이벤트)을 받아 diff를 조회하고, 선택한 LLM(OpenAI, Gemini, Ollama 등)을 사용해 코드 리뷰 코멘트를 생성한 뒤, GitLab에 **마크다운 형식의 댓글**로 남깁니다.
 
 ![sample](./docs/images/sample.png)
 
@@ -12,7 +12,7 @@ GitLab Webhook(머지 요청 및 푸시 이벤트)을 받아 diff를 조회하�
 - GitLab에서 발생하는 다음 이벤트를 처리합니다.
   - 머지 요청 이벤트(`object_kind = "merge_request"`, action: `open`인 경우만 처리)
   - 푸시 이벤트(`object_kind = "push"`)
-- 각 이벤트에 대해 GitLab API로 diff를 조회한 뒤, OpenAI ChatCompletion API(파이썬 SDK v1 기준 `OpenAI` 클라이언트)를 통해 리뷰를 생성합니다.
+- 각 이벤트에 대해 GitLab API로 diff를 조회한 뒤, LangChain LLM 클라이언트를 통해 선택한 provider(OpenAI, Gemini, Ollama 등)로 리뷰를 생성합니다.
 - 생성된 리뷰를 다음 위치에 댓글로 남깁니다.
   - 머지 요청: MR Note
   - 커밋: Commit Comment
@@ -31,6 +31,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
 - 코드 가독성, 구조, 복잡도, 잠재적 버그 및 보안 이슈에 대한 피드백
 - GitLab에서 바로 읽기 좋은 **마크다운 형식**의 코멘트 생성
 - 머지 요청과 푸시(커밋)에 모두 대응
+- LangChain 기반 LLM 추상화로 **OpenAI, Google Gemini, Ollama** 중 원하는 provider 선택 가능
 
 ---
 
@@ -47,7 +48,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
    ```
 
 4. 응답에서 `changes[].diff`를 추출해 하나의 문자열로 합침
-5. 리뷰 프롬프트(질문 목록 포함)를 구성하고 OpenAI Python SDK v1의 `client.chat.completions.create(...)`를 호출
+5. 리뷰 프롬프트(질문 목록 포함)를 구성하고 LangChain LLM 클라이언트를 통해 선택한 provider(OpenAI, Gemini, Ollama 등)로 리뷰를 생성
 6. 생성된 리뷰를 아래 API로 MR 댓글로 등록
 
    ```text
@@ -65,7 +66,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
    ```
 
 4. diff 목록을 문자열로 합쳐 프롬프트에 포함
-5. OpenAI Python SDK v1의 `client.chat.completions.create(...)`로 리뷰 생성
+5. LangChain LLM 클라이언트를 통해 선택한 provider(OpenAI, Gemini, Ollama 등)로 리뷰 생성
 6. 생성된 리뷰를 아래 API로 커밋 댓글로 등록
 
    ```text
@@ -80,7 +81,7 @@ GitLab Webhook은 이 엔드포인트로 이벤트를 전송해야 합니다.
 
 - Python **3.11 이상** (프로젝트 `pyproject.toml` 및 uv 기준)
 - GitLab 프로젝트 1개 이상 (Webhook 설정 권한 필요)
-- OpenAI API Key
+- OpenAI API Key (기본 provider가 openai일 때 필요)
 - GitLab Personal Access Token (API 권한 포함)
 - Docker 및 docker-compose (선택, 컨테이너 실행용)
 
@@ -92,88 +93,35 @@ Python 의존성은 `pyproject.toml`로 관리되며, 로컬 개발 시 **uv** �
 
 이 애플리케이션은 모든 설정을 **환경 변수**로 받습니다. 루트 디렉터리에 `.env` 파일을 두고 관리하거나, 쉘에서 직접 export 해도 됩니다.
 
-### 빠른 시작: 최소 .env 예시
-
-가장 빠르게 시작하려면 아래와 같이 **필수 값만** 설정해도 동작합니다.
+### 빠른 시작 .env 예시
 
 ```env
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_API_MODEL=gpt-5-mini
+LLM_PROVIDER=openai # LLM provider [openai (default) / gemini / ollama]
+LLM_MODEL=gpt-5-mini # LLM 모델명 [gpt-5-mini (default) , gemini-2.5-pro, llama3, ...]
+LLM_TIMEOUT_SECONDS=300 # LLM API timeout seconds [default: 300]
+
+OPENAI_API_KEY=your-openai-api-key # provider=openai 인 경우 필요
+GOOGLE_API_KEY=your-google-api-key # provider=gemini 인 경우 필요
+OLLAMA_BASE_URL=http://localhost:11434 # provider=ollama 인 경우 필요 [default: http://localhost:11434]
 
 GITLAB_ACCESS_TOKEN=your-gitlab-personal-access-token
 GITLAB_URL=https://gitlab.com
-
 GITLAB_WEBHOOK_SECRET_TOKEN=your-webhook-secret-token
 ```
 
-아래 섹션에서는 필수/선택 환경 변수를 포함한 **세부 설정**을 설명합니다.
-
-### 세부 설정: 필수 환경 변수
-
-- `OPENAI_API_KEY`  
-  OpenAI API Key
-
-- `OPENAI_API_MODEL`  
-  사용할 OpenAI ChatCompletion 모델 이름 (예: `gpt-5-mini`)
-
-- `GITLAB_ACCESS_TOKEN`  
-  GitLab Personal Access Token. MR 조회 및 댓글 작성이 가능하도록 `api` 스코프 권장.
-
-- `GITLAB_URL`  
-  GitLab 인스턴스 **베이스 URL**(프로토콜 + 호스트까지)입니다. GitLab.com의 경우:
-
-  ```text
-  https://gitlab.com
-  ```
-
-  self-hosted GitLab을 사용하는 경우 예시는 다음과 같습니다.
-
-  ```text
-  http://localhost:8080
-  ```
-
-  애플리케이션은 내부에서 이 값에 `/api/v4`를 자동으로 붙여 GitLab API를 호출합니다.
-
-- `GITLAB_WEBHOOK_SECRET_TOKEN`  
-  Webhook 보안을 위한 GitLab **Secret Token** 값입니다. GitLab Webhook 설정 화면에서 입력한 값과 동일해야 합니다.
-  강력한 랜덤 토큰을 생성하기 위해 아래와 같은 명령어(macOS / Linux 기준) 사용을 권장합니다.
-
-  ```bash
-  openssl rand -base64 32
-  ```
-
-### 세부 설정: 선택 환경 변수 (공통)
-
-- `LOG_LEVEL`  
-  애플리케이션 전역 로그 레벨을 설정합니다. 설정하지 않으면 `INFO`가 기본값입니다.  
-  사용 가능한 값 예: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
-
-- `ENABLE_MERGE_REQUEST_REVIEW`  
-  `merge_request` 이벤트를 처리할지 여부를 제어합니다. 설정하지 않으면 기본값은 `true`입니다.  
-  값이 `1`, `true`, `yes`, `on`(대소문자 무시) 중 하나이면 활성화되고, 그 외 값은 비활성화로 간주됩니다.
-
-- `ENABLE_PUSH_REVIEW`  
-  `push` 이벤트(커밋) 를 처리할지 여부를 제어합니다. 설정하지 않으면 기본값은 `true`입니다.  
-  값이 `1`, `true`, `yes`, `on`(대소문자 무시) 중 하나이면 활성화되고, 그 외 값은 비활성화로 간주됩니다.
-
-- `REVIEW_MAX_REQUESTS_PER_MINUTE`, `REVIEW_WORKER_CONCURRENCY`, `REVIEW_MAX_PENDING_JOBS`  
-  비동기 리뷰 큐 및 레이트 리밋 동작을 제어하는 고급 설정입니다. 설정하지 않으면 각각 `2`, `1`, `100` 이 기본값으로 사용됩니다.
-
-### `.env` 전체 예시 (세부 설정 포함)
+### 세부 설정 포함 `.env` 전체 예시
 
 [.env.sample](./.env.sample)
 
 ### 테스트 환경(.env) 및 pytest
 
 - 루트 디렉터리의 `.env` 파일은 `tests/conftest.py` 에서 `python-dotenv` 로 자동 로드됩니다.
-- `tests/test_openai_service_env.py`, `tests/test_gitlab_client_env.py` 는 실제 OpenAI / GitLab API를 호출하는 **통합 테스트**이며, 다음 조건에서만 실행됩니다.
-  - `OPENAI_API_KEY` 가 설정되어 있어야 합니다.
-  - GitLab 통합 테스트의 경우:
-    - `GITLAB_URL`
-    - `GITLAB_ACCESS_TOKEN`
-    - `GITLAB_TEST_PROJECT_ID`
-    - `GITLAB_TEST_MERGE_REQUEST_IID`
-    - `GITLAB_TEST_COMMIT_ID`
+- `tests/test_gitlab_client_env.py` 는 실제 GitLab API를 호출하는 **통합 테스트**이며, 다음 조건에서만 실행됩니다.
+  - `GITLAB_URL`
+  - `GITLAB_ACCESS_TOKEN`
+  - `GITLAB_TEST_PROJECT_ID`
+  - `GITLAB_TEST_MERGE_REQUEST_IID`
+  - `GITLAB_TEST_COMMIT_ID`
 - 위 환경변수가 설정되지 않은 경우, 해당 테스트는 `pytest.skip` 으로 자동 건너뜁니다.
 
 테스트 실행 예시는 다음과 같습니다.
@@ -275,8 +223,7 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
 
 1. GitLab에서 diff를 조회해 하나의 문자열로 합칩니다.
 2. 파일 상태(추가/삭제/리네임/수정)를 포함해 diff를 파일 단위로 정리하고, 시니어 코드 리뷰어 역할과 체크리스트(요약, 코드 품질, 버그/로직, 보안, 제안)를 담은 프롬프트를 구성합니다. 이때 LLM이 먼저 **한국어 리뷰**, 이어서 `---` 한 줄, 그리고 **동일 구조의 영어 리뷰**를 생성하도록 지시합니다.
-3. OpenAI Python SDK v1 기준 `client.chat.completions.create(...)`에 아래와 유사한 설정으로 요청합니다.
-   - `model = OPENAI_API_MODEL` 또는 기본값 `gpt-5-mini`
+3. LangChain LLM 클라이언트를 통해 `LLM_PROVIDER` / `LLM_MODEL` 설정에 맞는 모델을 호출합니다. 기본값은 OpenAI `gpt-5-mini` 입니다.
 4. 응답 내용을 정리해 GitLab에 마크다운 댓글로 등록합니다.
 
 에러 발생 시:
@@ -299,8 +246,10 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
   - 컨테이너/애플리케이션 로그에 에러가 없는지 확인합니다.
   - `GITLAB_ACCESS_TOKEN`에 충분한 권한이 있는지, `GITLAB_URL`이 올바른지 점검합니다.
 
-- **OpenAI 관련 에러**
-  - `OPENAI_API_KEY`, `OPENAI_API_MODEL` 값이 유효한지 확인합니다.
+- **LLM 관련 에러**
+
+  - `LLM_PROVIDER`, `LLM_MODEL`, `LLM_TIMEOUT_SECONDS` 가 올바른지 확인합니다.
+  - `LLM_PROVIDER`에 따라 필요한 API 키가 설정되어 있는지 확인합니다. 예) `LLM_PROVIDER=openai` 인 경우 `OPENAI_API_KEY` 가 필요합니다.
 
 ---
 
