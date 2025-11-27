@@ -5,6 +5,6 @@ services:
     build:
       context: .
     ports:
-      - "9655:80"
+      - "9655:9655"
     env_file:
       - .env

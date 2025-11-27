@@ -7,6 +7,6 @@ RUN pip install -r requirements.txt gunicorn
 
 COPY . .
 
-EXPOSE 80
+EXPOSE 9655
 
-CMD ["gunicorn", "--bind", "0.0.0.0:80", "main:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:9655", "main:app"]

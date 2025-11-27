@@ -216,11 +216,11 @@ python main.py
 ```
 
 - Host: `0.0.0.0`
-- Port: `8080`
+- Port: `9655`
 - Webhook 엔드포인트 예시:
 
   ```text
-  http://localhost:8080/webhook
+  http://localhost:9655/webhook
   ```
 
 개발/테스트 용도로 적합하며, 운영 환경에서는 아래 Docker + gunicorn 사용을 권장합니다.
@@ -244,12 +244,12 @@ python main.py
 
 기본 설정은 다음과 같습니다.
 
-- 컨테이너 내부 포트: `80`
+- 컨테이너 내부 포트: `9655`
 - `docker-compose.yaml` 포트 매핑:
 
   ```yaml
   ports:
-    - "9655:80"
+    - "9655:9655"
   ```
 
 따라서 외부에서 접근하는 Webhook URL은 다음과 같습니다.
@@ -261,7 +261,7 @@ http://localhost:9655/webhook
 컨테이너 내부에서는 다음 커맨드로 애플리케이션이 실행됩니다.
 
 ```bash
-gunicorn --bind 0.0.0.0:80 main:app
+gunicorn --bind 0.0.0.0:9655 main:app
 ```
 
 ---
@@ -276,7 +276,7 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
    - 로컬 개발 (Flask 개발 서버):
 
      ```text
-     http://YOUR-HOST:8080/webhook
+     http://YOUR-HOST:9655/webhook
      ```
 
    - Docker (docker-compose 사용):
@@ -305,7 +305,7 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
 각 이벤트 처리 시 애플리케이션은:
 
 1. GitLab에서 diff를 조회해 하나의 문자열로 합칩니다.
-2. "구조, 보안, 가독성" 등에 초점을 둔 프롬프트와 질문 목록을 구성합니다.
+2. 파일 상태(추가/삭제/리네임/수정)를 포함해 diff를 파일 단위로 정리하고, 시니어 코드 리뷰어 역할과 체크리스트(요약, 코드 품질, 버그/로직, 보안, 제안)를 담은 프롬프트를 구성합니다. 이때 LLM이 먼저 **한국어 리뷰**, 이어서 `---` 한 줄, 그리고 **동일 구조의 영어 리뷰**를 생성하도록 지시합니다.
 3. `openai.ChatCompletion.create(...)`에 아래와 유사한 설정으로 요청합니다.
    - `deployment_id = OPENAI_API_MODEL`
    - `model = OPENAI_API_MODEL` 또는 기본값 `gpt-3.5-turbo`
