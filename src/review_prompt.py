@@ -72,6 +72,15 @@ ANALYSIS RULE:
 - Do NOT infer missing code.
 - Be strict, concise, deterministic.
 
+VERDICT RULE:
+- 🔴 Request Changes → ONLY if Section 2 has at least one issue
+- 🟡 Comment → Section 2 clean BUT Section 4 has meaningful suggestions
+- 🟢 Approve → Section 2 clean AND Section 4 suggestions are minor
+
+DO NOT DEVIATE FROM THIS FORMAT.
+DO NOT insert extra symbols or separators.
+DO NOT mix KR/EN within the same section.
+
 <The following is the output format required for the LLM.>
 
 ### 1. 🚦 종합 판정
@@ -90,35 +99,6 @@ ANALYSIS RULE:
 ### 4. 🧹 제안 & 스타일
 - Nitpicks(사소한 개선)
 - Structural(구조적 제안)
-
-----------------------------------------
-### After finishing all Korean content above,
-output the FULL English version again, in this exact structure:
-
-### 1. 🚦 Review Verdict
-- Verdict: …
-- Reason (EN): …
-
-### 2. 🚨 Critical Issues (Must Fix)
-- "None detected" or list issues
-
-### 3. 🔍 Change Summary
-- Bullet-style summary (EN)
-
-### 4. 🧹 Suggestions & Style
-- Nitpicks
-- Structural suggestions
-
-----------------------------------------
-
-VERDICT RULE:
-- 🔴 Request Changes → ONLY if Section 2 has at least one issue
-- 🟡 Comment → Section 2 clean BUT Section 4 has meaningful suggestions
-- 🟢 Approve → Section 2 clean AND Section 4 suggestions are minor
-
-DO NOT DEVIATE FROM THIS FORMAT.
-DO NOT insert extra symbols or separators.
-DO NOT mix KR/EN within the same section.
     """
 
     messages: List[ChatMessageDict] = [
