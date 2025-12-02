@@ -107,7 +107,6 @@ OLLAMA_BASE_URL=http://localhost:11434 # provider=ollama 인 경우 필요 [defa
 GITLAB_ACCESS_TOKEN=your-gitlab-personal-access-token
 GITLAB_URL=https://gitlab.com
 GITLAB_WEBHOOK_SECRET_TOKEN=your-webhook-secret-token
-REVIEW_SYSTEM_PROMPT= # (선택) 코드 리뷰용 시스템 프롬프트를 완전히 커스터마이징할 때 사용. 비워두면 기본 프롬프트 사용
 ```
 
 ### 세부 설정 포함 `.env` 전체 예시
@@ -206,6 +205,21 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
 3. **Secret token** 입력:
 
    - `.env`에 설정한 `GITLAB_WEBHOOK_SECRET_TOKEN`과 **동일한 값**을 입력합니다.
+
+   - `GITLAB_WEBHOOK_SECRET_TOKEN` 값은 충분히 긴 랜덤 문자열을 사용하는 것을 권장합니다. 예를 들어 macOS / Linux에서 다음과 같이 생성할 수 있습니다.
+
+     ```bash
+     # OpenSSL 사용 (hex 32바이트)
+     openssl rand -hex 32
+
+     # 또는 Python 내장 secrets 사용
+     python - << 'PY'
+     import secrets
+     print(secrets.token_hex(32))
+     PY
+     ```
+
+     생성된 값을 `.env`의 `GITLAB_WEBHOOK_SECRET_TOKEN`에 설정하고, 이 섹션의 Secret token 입력란에도 동일한 값을 넣어야 합니다.
 
 4. Trigger 이벤트 선택:
 
