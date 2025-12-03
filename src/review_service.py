@@ -8,8 +8,13 @@ from .gitlab_client import (
     post_merge_request_comment,
     post_commit_comment,
 )
+from .llm_client import get_llm_model_name, get_llm_provider_name
+from .review_cache import (
+    get_cached_review_for_changes,
+    put_cached_review_for_changes,
+)
 from .review_chain import get_review_chain
-from .types import LLMReviewResult, MergeRequestChangesResponse
+from .types import GitDiffChange, LLMReviewResult, MergeRequestChangesResponse
 from .utils.time_utils import format_seconds
 
 
@@ -86,9 +91,34 @@ def run_merge_request_review(task: MergeRequestReviewTask) -> None:
         task.merge_request_iid,
     )
 
+    changes: List[GitDiffChange] = mr_changes.get("changes", [])
+
+    provider = get_llm_provider_name()
+    model = get_llm_model_name()
+
     try:
-        review_chain = get_review_chain()
-        llm_result: LLMReviewResult = review_chain.invoke(mr_changes["changes"])
+        cached: LLMReviewResult | None = get_cached_review_for_changes(
+            provider,
+            model,
+            changes,
+        )
+        if cached is not None:
+            logger.info(
+                "Using cached LLM review result for merge_request: project_id=%s, mr_id=%s",
+                task.project_id,
+                task.merge_request_iid,
+            )
+            llm_result = cached
+        else:
+            review_chain = get_review_chain()
+            llm_result = review_chain.invoke(changes)
+            put_cached_review_for_changes(
+                provider,
+                model,
+                changes,
+                llm_result,
+            )
+
         answer = llm_result["content"] + _build_llm_footer(llm_result)
         post_merge_request_comment(
             task.gitlab_api_base_url,
@@ -138,10 +168,32 @@ def run_push_review(task: PushReviewTask) -> None:
         task.project_id,
         task.commit_id,
     )
+    provider = get_llm_provider_name()
+    model = get_llm_model_name()
 
     try:
-        review_chain = get_review_chain()
-        llm_result: LLMReviewResult = review_chain.invoke(changes)
+        cached: LLMReviewResult | None = get_cached_review_for_changes(
+            provider,
+            model,
+            changes,
+        )
+        if cached is not None:
+            logger.info(
+                "Using cached LLM review result for commit: project_id=%s, commit_id=%s",
+                task.project_id,
+                task.commit_id,
+            )
+            llm_result = cached
+        else:
+            review_chain = get_review_chain()
+            llm_result = review_chain.invoke(changes)
+            put_cached_review_for_changes(
+                provider,
+                model,
+                changes,
+                llm_result,
+            )
+
         answer = llm_result["content"] + _build_llm_footer(llm_result)
         post_commit_comment(
             task.gitlab_api_base_url,
