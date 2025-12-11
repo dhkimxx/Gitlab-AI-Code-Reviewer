@@ -16,6 +16,12 @@ from .review_cache import (
 from .review_chain import get_review_chain
 from .types import GitDiffChange, LLMReviewResult, MergeRequestChangesResponse
 from .utils.time_utils import format_seconds
+from .llm_monitoring import (
+    send_merge_request_llm_error,
+    send_merge_request_llm_success,
+    send_push_llm_error,
+    send_push_llm_success,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -118,6 +124,12 @@ def run_merge_request_review(task: MergeRequestReviewTask) -> None:
                 changes,
                 llm_result,
             )
+        send_merge_request_llm_success(
+            gitlab_api_base_url=task.gitlab_api_base_url,
+            project_id=task.project_id,
+            merge_request_iid=task.merge_request_iid,
+            llm_result=llm_result,
+        )
 
         answer = llm_result["content"] + _build_llm_footer(llm_result)
         post_merge_request_comment(
@@ -132,6 +144,15 @@ def run_merge_request_review(task: MergeRequestReviewTask) -> None:
             "Failed to generate review for merge_request: project_id=%s, mr_id=%s",
             task.project_id,
             task.merge_request_iid,
+        )
+
+        send_merge_request_llm_error(
+            gitlab_api_base_url=task.gitlab_api_base_url,
+            project_id=task.project_id,
+            merge_request_iid=task.merge_request_iid,
+            provider=provider,
+            model=model,
+            error=e,
         )
         error_comment = _build_ai_error_comment(
             "AI 코드 리뷰 생성에 실패했습니다. 사람이 직접 리뷰해야 합니다.",
@@ -193,6 +214,12 @@ def run_push_review(task: PushReviewTask) -> None:
                 changes,
                 llm_result,
             )
+        send_push_llm_success(
+            gitlab_api_base_url=task.gitlab_api_base_url,
+            project_id=task.project_id,
+            commit_id=task.commit_id,
+            llm_result=llm_result,
+        )
 
         answer = llm_result["content"] + _build_llm_footer(llm_result)
         post_commit_comment(
@@ -207,6 +234,15 @@ def run_push_review(task: PushReviewTask) -> None:
             "Failed to generate review for commit: project_id=%s, commit_id=%s",
             task.project_id,
             task.commit_id,
+        )
+
+        send_push_llm_error(
+            gitlab_api_base_url=task.gitlab_api_base_url,
+            project_id=task.project_id,
+            commit_id=task.commit_id,
+            provider=provider,
+            model=model,
+            error=e,
         )
         error_comment = _build_ai_error_comment(
             "AI 코드 리뷰 생성에 실패했습니다. 사람이 직접 리뷰해야 합니다.",

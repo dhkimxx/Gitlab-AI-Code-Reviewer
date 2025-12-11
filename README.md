@@ -110,6 +110,10 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1 # provider=openrouter 인 경�
 GITLAB_ACCESS_TOKEN=your-gitlab-personal-access-token
 GITLAB_URL=https://gitlab.com
 GITLAB_WEBHOOK_SECRET_TOKEN=your-webhook-secret-token
+
+# (선택) LLM 모니터링 웹훅 설정
+# LLM_MONITORING_WEBHOOK_URL 이 설정된 경우, 각 리뷰 시도(머지 요청/푸시)에 대해 JSON payload를 POST로 전송합니다.
+LLM_MONITORING_WEBHOOK_URL=https://example.com/llm-monitoring-webhook
 ```
 
 ### 세부 설정 포함 `.env` 전체 예시
@@ -269,6 +273,97 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
   - `LLM_PROVIDER`, `LLM_MODEL`, `LLM_TIMEOUT_SECONDS` 가 올바른지 확인합니다.
   - `LLM_PROVIDER`에 따라 필요한 API 키가 설정되어 있는지 확인합니다. 예) `LLM_PROVIDER=openai` 인 경우 `OPENAI_API_KEY`, `LLM_PROVIDER=gemini` 인 경우 `GOOGLE_API_KEY`, `LLM_PROVIDER=openrouter` 인 경우 `OPENROUTER_API_KEY` 가 필요합니다.
   - 429(Too Many Requests) 등 빈번한 rate limit 에러가 발생하는 경우, `LLM_MAX_RETRIES` 값을 조절해 재시도 횟수를 관리하거나, 호출 빈도/모델을 조정해야 할 수 있습니다. 기본값은 `0`(자동 재시도 없음)입니다.
+
+---
+
+## LLM 모니터링 웹훅
+
+`LLM_MONITORING_WEBHOOK_URL` 환경 변수가 설정된 경우, 각 리뷰 시도(머지 요청 / 푸시)에 대해
+LLM 호출 결과를 JSON으로 POST 합니다. 성공/실패는 `status` 필드로 구분됩니다.
+
+### 1. 공통 필드
+
+```jsonc
+{
+  "status": "success" | "error",           // 호출 성공/실패 구분
+  "event": "merge_request_review" | "push_review",
+  "source": "gitlab-ai-code-reviewer",      // 발신자 식별자
+  "timestamp": "2025-12-11T08:45:12.345678+00:00", // UTC ISO8601
+  "gitlab": { ... },
+  "llm": { ... },
+  "review": { ... }, // 성공 시에만 존재
+  "error": { ... }   // 실패 시에만 존재
+}
+```
+
+### 2. 성공(payload.status = "success") 예시
+
+머지 요청 리뷰 성공 시 예시:
+
+```jsonc
+{
+  "status": "success",
+  "event": "merge_request_review",
+  "source": "gitlab-ai-code-reviewer",
+  "timestamp": "2025-12-11T08:45:12.345678+00:00",
+  "gitlab": {
+    "api_base_url": "http://gitlab.example.com/api/v4",
+    "project_id": 42,
+    "merge_request_iid": 3
+  },
+  "llm": {
+    "provider": "openrouter",
+    "model": "mistralai/devstral-2512:free",
+    "elapsed_seconds": 12.34,
+    "input_tokens": 1234,
+    "output_tokens": 567,
+    "total_tokens": 1801
+  },
+  "review": {
+    "content": "... LLM이 생성한 리뷰 전체 텍스트 ...",
+    "length": 1024
+  }
+}
+```
+
+푸시(커밋) 리뷰 성공 시에는 `gitlab` 블록만 다음처럼 달라집니다.
+
+```jsonc
+"gitlab": {
+  "api_base_url": "http://gitlab.example.com/api/v4",
+  "project_id": 42,
+  "commit_id": "abc123def456"
+}
+```
+
+### 3. 실패(payload.status = "error") 예시
+
+예를 들어 OpenRouter rate limit 등으로 리뷰 생성이 실패한 경우:
+
+```jsonc
+{
+  "status": "error",
+  "event": "merge_request_review",
+  "source": "gitlab-ai-code-reviewer",
+  "timestamp": "2025-12-11T08:50:00.123456+00:00",
+  "gitlab": {
+    "api_base_url": "http://gitlab.example.com/api/v4",
+    "project_id": 42,
+    "merge_request_iid": 3
+  },
+  "llm": {
+    "provider": "openrouter",
+    "model": "mistralai/devstral-2512:free"
+  },
+  "error": {
+    "type": "RateLimitError",
+    "message": "Rate limit exceeded: free-models-per-day...",
+    "detail": "RateLimitError('Rate limit exceeded: free-models-per-day...')"
+  }
+}
+```
+
+푸시(커밋) 리뷰 실패 시에도 동일 구조에서 `gitlab.commit_id`만 포함됩니다.
 
 ---
 
