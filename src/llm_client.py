@@ -57,6 +57,24 @@ def _get_llm_timeout_seconds() -> float:
         return 300.0
 
 
+def _get_llm_max_retries() -> int:
+    raw_value = os.environ.get("LLM_MAX_RETRIES")
+    if raw_value is None or not raw_value.strip():
+        return 0
+
+    try:
+        retries = int(raw_value)
+        if retries < 0:
+            raise ValueError
+        return retries
+    except ValueError:
+        logger.warning(
+            "Invalid LLM_MAX_RETRIES '%s', using default 0",
+            raw_value,
+        )
+        return 0
+
+
 def _to_langchain_messages(messages: List[ChatMessageDict]) -> List[BaseMessage]:
     lc_messages: List[BaseMessage] = []
     for message in messages:
@@ -78,6 +96,7 @@ def _to_langchain_messages(messages: List[ChatMessageDict]) -> List[BaseMessage]
 
 def _create_openai_llm(model: str, temperature: float) -> ChatOpenAI:
     timeout = _get_llm_timeout_seconds()
+    max_retries = _get_llm_max_retries()
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY is not set")
@@ -96,6 +115,7 @@ def _create_openai_llm(model: str, temperature: float) -> ChatOpenAI:
         api_key=api_key,
         temperature=temperature,
         timeout=timeout,
+        max_retries=max_retries,
     )
 
 
@@ -107,10 +127,12 @@ def _create_gemini_llm(model: str, temperature: float) -> ChatGoogleGenerativeAI
         )
 
     timeout = _get_llm_timeout_seconds()
+    max_retries = _get_llm_max_retries()
     return ChatGoogleGenerativeAI(
         model=model,
         api_key=api_key,
         temperature=temperature,
+        max_retries=max_retries,
         # langchain-google-genai 에서는 timeout을 client 옵션으로 처리하므로,
         # 여기서는 모델 수준에서만 전달한다.
     )
@@ -119,17 +141,20 @@ def _create_gemini_llm(model: str, temperature: float) -> ChatGoogleGenerativeAI
 def _create_ollama_llm(model: str, temperature: float) -> ChatOllama:
     base_url = os.environ.get("OLLAMA_BASE_URL") or "http://localhost:11434"
     timeout = _get_llm_timeout_seconds()
+    max_retries = _get_llm_max_retries()
 
     return ChatOllama(
         model=model,
         temperature=temperature,
         base_url=base_url,
         request_timeout=timeout,
+        max_retries=max_retries,
     )
 
 
 def _create_openrouter_llm(model: str, temperature: float) -> ChatOpenAI:
     timeout = _get_llm_timeout_seconds()
+    max_retries = _get_llm_max_retries()
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise ValueError(
@@ -144,6 +169,7 @@ def _create_openrouter_llm(model: str, temperature: float) -> ChatOpenAI:
         temperature=temperature,
         timeout=timeout,
         base_url=base_url,
+        max_retries=max_retries,
     )
 
 

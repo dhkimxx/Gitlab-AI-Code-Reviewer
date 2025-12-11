@@ -268,6 +268,7 @@ GitLab 프로젝트에서 Webhook을 아래와 같이 설정합니다.
 
   - `LLM_PROVIDER`, `LLM_MODEL`, `LLM_TIMEOUT_SECONDS` 가 올바른지 확인합니다.
   - `LLM_PROVIDER`에 따라 필요한 API 키가 설정되어 있는지 확인합니다. 예) `LLM_PROVIDER=openai` 인 경우 `OPENAI_API_KEY`, `LLM_PROVIDER=gemini` 인 경우 `GOOGLE_API_KEY`, `LLM_PROVIDER=openrouter` 인 경우 `OPENROUTER_API_KEY` 가 필요합니다.
+  - 429(Too Many Requests) 등 빈번한 rate limit 에러가 발생하는 경우, `LLM_MAX_RETRIES` 값을 조절해 재시도 횟수를 관리하거나, 호출 빈도/모델을 조정해야 할 수 있습니다. 기본값은 `0`(자동 재시도 없음)입니다.
 
 ---
 
